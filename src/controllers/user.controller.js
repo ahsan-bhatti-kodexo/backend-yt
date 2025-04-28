@@ -3,6 +3,7 @@ import { ApiErrors } from "../utils/ApiErrors.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
+import fs from "fs";
 
 const registerUser = asyncHandler(async (req, res) => {
   // get user details from frontend
@@ -27,16 +28,22 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   // check if user already exists in the database (Done)
-  const existingUser = User.findOne({
+  const existingUser = await User.findOne({
     $or: [{ username }, { email }],
   });
+
   if (existingUser) {
+    fs.unlinkSync(req.files?.avatar[0]?.path); // Delete the locally saved temporary file
+    req.files?.coverImage && fs.unlinkSync(req.files?.coverImage[0]?.path); // Delete the locally saved temporary file
+
     throw new ApiErrors(409, "User already exists");
   }
 
   // check for images , check for avatar (Done)
   const avatar = req.files?.avatar[0]?.path;
-  const coverImage = req.files?.coverImage[0]?.path;
+  const coverImage = req.files?.coverImage
+    ? req.files?.coverImage[0]?.path
+    : null;
 
   if (!avatar) {
     throw new ApiErrors(400, "Avatar is required");
