@@ -14,3 +14,5 @@ class ApiResponse {
   //     return new ApiResponse(statusCode, null, message, errors);
   //   }
 }
+
+export { ApiResponse };
