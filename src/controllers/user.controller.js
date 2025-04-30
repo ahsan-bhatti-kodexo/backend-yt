@@ -172,6 +172,18 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
+  // get the refresh token from the request
+  // find the user in the database
+  // check if the refresh token is valid
+  // delete the refresh token from the database
+  // return the response
+
+  // get the refresh token from the request (Done)
+  // Below steps are done in middleware (verifyJWT)
+  //                \/
+  // find the user in the database (Done)
+  // check if the refresh token is valid (Done)
+
   await User.findByIdAndUpdate(
     req.user._id,
     {
@@ -184,11 +196,14 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
   );
 
+  // delete the refresh token from the database (Done)
+
   const option = {
     httpOnly: true,
     secure: true,
   };
 
+  // return the response (Done)
   return res
     .status(200)
     .clearCookie("accessToken", option)
