@@ -47,6 +47,10 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiErrors(400, "All fields are required");
   }
 
+  if (password.length < 6) {
+    throw new ApiErrors(400, "Password must be at least 6 characters");
+  }
+
   // check if user already exists in the database (Done)
   const existingUser = await User.findOne({
     $or: [{ username }, { email }],
@@ -279,4 +283,203 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  // get the user id from the request
+  // get the user details from the request
+  // validate the user details - not empty, old password, new password length, etc.
+  // find the user in the database
+  // check for password match
+  // update the password in the database
+  // return the response
+
+  // get the old password and new password from the request body (Done)
+  const { oldPassword, newPassword, confirmPassword } = req.body;
+
+  // check for new  password and confirm password match
+
+  if (newPassword !== confirmPassword) {
+    throw new ApiErrors(400, "New password and confirm password do not match");
+  }
+
+  // validate the user details - not empty, old password, new password length, etc. (Done)
+  if (!oldPassword || !newPassword) {
+    throw new ApiErrors(400, "Old password and new password are required");
+  }
+  // check for password length (6 characters) (Done)
+  if (newPassword.length < 6) {
+    throw new ApiErrors(400, "New password must be at least 6 characters");
+  }
+
+  // request user id from the request (Done)
+  // find the user in the database (Done)
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw new ApiErrors(404, "User not found");
+  }
+
+  // check for password match (Done)
+  const isPasswordMatched = await user.comparePassword(oldPassword);
+
+  if (!isPasswordMatched) {
+    throw new ApiErrors(400, "Old password is incorrect");
+  }
+
+  // update the password in the database (Done)
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password updated successfully"));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "User fetched successfully"));
+});
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  // get the fullName , username from the request
+  // validate the user details - not empty, fullName, username length, etc.
+  // check if the user exists in the database
+  // if user exists, update the user details in the database
+  // return the response
+
+  // get the fullName , username from the request (Done)
+  const { fullName, username } = req.body;
+  // validate the user details - not empty, fullName, username length, etc. (Done)
+  if (!fullName || !username) {
+    throw new ApiErrors(400, "Full name and username are required");
+  }
+  if (fullName.length < 3 || username.length < 3) {
+    throw new ApiErrors(
+      400,
+      "Full name and username must be at least 3 characters"
+    );
+  }
+
+  // check if the user exists in the database (Done)
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        fullName,
+        username,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("-password -refreshToken");
+
+  if (!user) {
+    throw new ApiErrors(404, "User not found");
+  }
+
+  // return the response (Done)
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User details updated successfully"));
+});
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  // get the avatar from the request
+  // upload the avatar to cloudinary
+  // update the avatar in the database
+  // return the response
+
+  // get the avatar from the request (Done)
+  const avatarLocalPath = req.file?.path;
+
+  // check if the avatar is present
+  if (!avatarLocalPath) {
+    throw new ApiErrors(400, "Avatar is required");
+  }
+
+  // upload the avatar to cloudinary (Done)
+  const avatar = await uploadCloudinary(avatarLocalPath);
+
+  if (!avatar) {
+    throw new ApiErrors(500, "Error uploading avatar to Cloudinary");
+  }
+
+  // update the avatar in the database (Done)
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("-password -refreshToken");
+
+  if (!user) {
+    throw new ApiErrors(404, "User not found");
+  }
+
+  // return the response (Done)
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User avatar updated successfully"));
+});
+
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+  // get the coverImage from the request
+  // upload the coverImage to cloudinary
+  // update the coverImage in the database
+  // return the response
+
+  // get the coverImage from the request (Done)
+  const coverImageLocalPath = req.file?.path;
+
+  // check if the coverImage is present
+  if (!coverImageLocalPath) {
+    throw new ApiErrors(400, "Cover image is required");
+  }
+
+  // upload the coverImage to cloudinary (Done)
+  const coverImage = await uploadCloudinary(coverImageLocalPath);
+
+  if (!coverImage) {
+    throw new ApiErrors(500, "Error uploading cover image to Cloudinary");
+  }
+
+  // update the coverImage in the database (Done)
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        coverImage: coverImage.url,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("-password -refreshToken");
+
+  if (!user) {
+    throw new ApiErrors(404, "User not found");
+  }
+
+  // return the response (Done)
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User cover image updated successfully"));
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage,
+};
