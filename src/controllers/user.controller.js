@@ -5,7 +5,7 @@ import { User } from "../models/user.model.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
-import { subscribe } from "diagnostics_channel";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -192,8 +192,8 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined,
+      $unset: {
+        refreshToken: 1, // this will remove the refresh token from the database,
       },
     },
     {
@@ -227,12 +227,15 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
   // get the refresh token from the request (Done)
 
+  console.log("dadada", req?.body?.refreshToken);
+
   const incomingRefreshtoken =
-    req.cookies.refreshToken || req.body.refreshToken;
+    req.cookies?.refreshToken || req?.body?.refreshToken;
 
   if (!incomingRefreshtoken) {
     throw new ApiErrors(401, "Unauthorized request");
   }
+
   try {
     // verify the refresh token (Done)
     const decodedToken = jwt.verify(
@@ -241,10 +244,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     );
 
     // find the user in the database (Done)
-    const user = await User.findById(decodedToken.id);
+    const user = await User.findById(decodedToken._id);
 
     if (!user) {
-      throw new ApiErrors(404, "User not found");
+      throw new ApiErrors(404, "User not found with this refresh token");
     }
 
     // check if the refresh token is valid (Done)
@@ -294,13 +297,14 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   // return the response
 
   // get the old password and new password from the request body (Done)
-  const { oldPassword, newPassword, confirmPassword } = req.body;
+  const { oldPassword, newPassword } = req.body;
+  // const { oldPassword, newPassword, confirmPassword } = req.body;
 
-  // check for new  password and confirm password match
+  // // check for new  password and confirm password match
 
-  if (newPassword !== confirmPassword) {
-    throw new ApiErrors(400, "New password and confirm password do not match");
-  }
+  // if (newPassword !== confirmPassword) {
+  //   throw new ApiErrors(400, "New password and confirm password do not match");
+  // }
 
   // validate the user details - not empty, old password, new password length, etc. (Done)
   if (!oldPassword || !newPassword) {
@@ -541,6 +545,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
+  // get the user id from the request
   const user = await User.aggregate([
     {
       $match: { _id: new mongoose.Types.ObjectId(req.user._id) },
