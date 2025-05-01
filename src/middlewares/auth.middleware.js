@@ -13,14 +13,14 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
   try {
     // check if the token is present in the request header or cookies
     const token =
-      req.cookies?.accessToken ||
-      req.headers?.authorization?.replace(/^Bearer\s/, "");
+      req.headers?.authorization?.replace(/^Bearer\s/, "") ||
+      req.cookies?.accessToken;
 
-    console.log(
-      "Token: ",
-      req.cookies?.accessToken,
-      req.headers?.authorization
-    );
+    // console.log(
+    //   "Token: ",
+    //   req.cookies?.accessToken,
+    //   req.headers?.authorization
+    // );
 
     if (!token) {
       throw new ApiErrors(401, "Access token is required");
