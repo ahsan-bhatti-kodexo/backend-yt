@@ -353,25 +353,21 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
   // return the response
 
   // get the fullName , username from the request (Done)
-  const { fullName, username } = req.body;
-  // validate the user details - not empty, fullName, username length, etc. (Done)
-  if (!fullName || !username) {
+  const { fullName } = req.body;
+  // validate the user details - not empty, fullName,  etc. (Done)
+  if (!fullName) {
     throw new ApiErrors(400, "Full name and username are required");
   }
-  if (fullName.length < 3 || username.length < 3) {
-    throw new ApiErrors(
-      400,
-      "Full name and username must be at least 3 characters"
-    );
+  if (fullName.length < 3) {
+    throw new ApiErrors(400, "Full name must be at least 3 characters");
   }
-
+  console.log('"req.user=>>", req.user);', req.user);
   // check if the user exists in the database (Done)
   const user = await User.findByIdAndUpdate(
     req.user._id,
     {
       $set: {
         fullName,
-        username,
       },
     },
     {
@@ -506,6 +502,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         as: "subscribedTo",
       },
     },
+
     {
       $addFields: {
         subscribersCount: { $size: "$subscribers" },
