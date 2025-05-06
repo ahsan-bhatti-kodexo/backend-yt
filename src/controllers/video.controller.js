@@ -9,6 +9,88 @@ import { uploadCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   //TODO: get all videos based on query, sort, pagination
+
+  console.log(
+    "query",
+    query,
+    "sortBy",
+    sortBy,
+    "sortType",
+    sortType,
+    "userId",
+    userId
+  );
+
+  const aggregateQuery = Video.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $unwind: {
+        path: "$owner",
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        description: 1,
+        videoFileUrl: 1,
+        thumbnailUrl: 1,
+        duration: 1,
+        views: 1,
+        isPublished: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        owner: {
+          _id: "$owner._id",
+          username: "$owner.username",
+          fullName: "$owner.fullName",
+          email: "$owner.email",
+          avatar: "$owner.avatar",
+        },
+      },
+    },
+  ]);
+
+  if (query) {
+    aggregateQuery.match({
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+      ],
+    });
+  }
+
+  if (userId) {
+    aggregateQuery.match({
+      "owner._id": new mongoose.Types.ObjectId(userId),
+    });
+  }
+
+  if (sortBy && sortType) {
+    aggregateQuery.sort({
+      [sortBy]: sortType === "asc" ? 1 : -1,
+    });
+  } else {
+    aggregateQuery.sort({
+      createdAt: -1,
+    });
+  }
+  // Pagination
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+  };
+  const videos = await Video.aggregatePaginate(aggregateQuery, options);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, videos, "Videos fetched successfully"));
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -168,6 +250,29 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  if (!isValidObjectId(videoId)) {
+    throw new ApiErrors(400, "Invalid video id");
+  }
+
+  const videoDetails = await Video.findById(videoId).select("isPublished");
+  if (!videoDetails) {
+    throw new ApiErrors(404, "Video not found");
+  }
+
+  const isPublished = videoDetails.isPublished;
+
+  // toggle publish status
+  videoDetails.isPublished = !isPublished;
+  await videoDetails.save();
+
+  if (!videoDetails) {
+    throw new ApiErrors(404, "Video not found");
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: `Video ${isPublished ? "unpublished" : "published"} successfully`,
+  });
 });
 
 export {
