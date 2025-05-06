@@ -30,11 +30,21 @@ router
     publishAVideo
   );
 
-router
-  .route("/:videoId")
-  .get(getVideoById)
-  .delete(deleteVideo)
-  .patch(upload.single("thumbnail"), updateVideo);
+router.route("/:videoId").get(getVideoById).delete(deleteVideo);
+
+router.route("/video/update").patch(
+  upload.fields([
+    {
+      name: "videoFileUrl",
+      maxCount: 1,
+    },
+    {
+      name: "thumbnailUrl",
+      maxCount: 1,
+    },
+  ]),
+  updateVideo
+);
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 

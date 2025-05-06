@@ -31,5 +31,72 @@ const uploadCloudinary = async (localFilePath) => {
     return null; // Return null in case of an error
   }
 };
+/**
+ * Extracts public_id from a Cloudinary URL
+ */
 
-export { uploadCloudinary };
+const getPublicIdFromUrl = (url) => {
+  try {
+    const urlObj = new URL(url);
+
+    console.log("urlObj", urlObj);
+
+    const pathParts = urlObj.pathname.split("/");
+
+    console.log("pathParts", pathParts);
+
+    // Find index of 'upload' and slice after it
+    const uploadIndex = pathParts.findIndex((p) => p === "upload");
+    console.log("uploadIndex", uploadIndex);
+    const publicIdWithExt = pathParts.slice(uploadIndex + 2).join("/"); // Skip version
+
+    console.log("publicIdWithExt", publicIdWithExt);
+    // Remove file extension
+    const lastDotIndex = publicIdWithExt.lastIndexOf(".");
+
+    console.log("lastDotIndex", lastDotIndex);
+
+    const publicId =
+      lastDotIndex !== -1
+        ? publicIdWithExt.slice(0, lastDotIndex)
+        : publicIdWithExt;
+
+    console.log("publicId", publicId);
+
+    return publicId; //
+  } catch (err) {
+    console.error("Error parsing Cloudinary URL:", err);
+    return null;
+  }
+};
+
+/**
+ * Deletes a media file from Cloudinary using its URL
+ */
+const deleteFromCloudinary = async (cloudinaryUrl, resourceType = "auto") => {
+  const publicId = getPublicIdFromUrl(cloudinaryUrl);
+
+  if (!publicId) {
+    console.error("Invalid Cloudinary URL. Cannot extract public_id.");
+    return false;
+  }
+
+  try {
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    });
+
+    if (result.result === "ok" || result.result === "not found") {
+      console.log(`Cloudinary file deleted: ${publicId}`);
+      return true;
+    } else {
+      console.error("Cloudinary delete failed:", result);
+      return false;
+    }
+  } catch (error) {
+    console.error("Error deleting from Cloudinary:", error);
+    return false;
+  }
+};
+
+export { uploadCloudinary, deleteFromCloudinary, getPublicIdFromUrl };
