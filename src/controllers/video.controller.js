@@ -173,8 +173,8 @@ const getVideoById = asyncHandler(async (req, res) => {
   // find video by id
   // check if video exists
   // check if video is published
-  // update views count
   // update the user watch history
+  // update views count
   // return video details
 
   // check if videoId is valid
