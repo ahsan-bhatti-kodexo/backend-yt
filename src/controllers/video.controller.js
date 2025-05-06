@@ -44,6 +44,12 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
   const owner = req.user._id;
 
+  const videosOwner = await User.findById(owner).select(
+    "username fullName email avatar"
+  );
+
+  console.log("videosOwner", videosOwner);
+
   const videoDetails = await Video.create({
     title,
     description,
@@ -57,9 +63,17 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
   console.log("videoDetails", videoDetails);
 
+  const responseVideoData = {
+    ...videoDetails._doc,
+    owner: videosOwner,
+  };
+  console.log("responseVideoData", responseVideoData);
+
   return res
     .status(200)
-    .json(new ApiResponse(200, videoDetails, "Video created successfully"));
+    .json(
+      new ApiResponse(200, responseVideoData, "Video created successfully")
+    );
 });
 
 const getVideoById = asyncHandler(async (req, res) => {
